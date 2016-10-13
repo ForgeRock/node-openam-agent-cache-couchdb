@@ -1,0 +1,24 @@
+{
+  "name": "openam-agent-cache-couchdb",
+  "description": "Cache using CouchDB for the OpenAM Policy Agent for NodeJS",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Zoltan Tarcsay <tarcsay.zoltan@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zoltantarcsay/node-openam-agent-cache-couchdb.git"
+  },
+  "scripts": {
+    "test": "mocha test/*"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "cradle": "^0.7.1",
+    "openam-agent-cache": "^1.0.0",
+    "util": "^0.10.3"
+  },
+  "devDependencies": {
+    "mocha": "^3.1.2"
+  }
+}
