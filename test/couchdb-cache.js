@@ -1,44 +1,54 @@
 var CouchDBCache = require('../index').CouchDBCache,
+    nano = require('nano'),
     Promise = require('bluebird'),
     assert = require('assert');
 
+process.on("unhandledRejection", function (reason, promise) {
+    // ignore
+});
+
 describe('CouchDBCache', function () {
-    var couchdbCache;
+    var couchdbCache,
+        dbUrl = process.env.COUCHDB_URL || 'http://localhost:32770',
+        dbName = 'couchdb-cache-test';
 
     beforeEach(function () {
         couchdbCache = new CouchDBCache({
-            protocol: process.env.COUCHDB_PROTOCOL || 'http',
-            host: process.env.COUCHDB_HOST || 'localhost',
-            port: process.env.COUCHDB_PORT || 32773,
-            expireAfterSeconds: 1
+            url: dbUrl,
+            db: dbName,
+            expireAfterSeconds: 0.1
         });
     });
 
-    afterEach(function () {
-        couchdbCache.quit();
+    after(function (done) {
+        nano(dbUrl).db.destroy(dbName, done);
     });
 
     describe('put', function () {
-        it('should put an entry in MongoDB', function () {
-            return couchdbCache.put('foo', 'bar')
+        afterEach(function () {
+            couchdbCache.quit();
+        });
+
+        it('should put an entry in CouchDB', function () {
+            return couchdbCache.put('foo1', 'bar')
                 .then(function () {
-                    return couchdbCache.get('foo');
+                    return couchdbCache.get('foo1');
                 })
                 .then(function (res) {
                     assert(res === 'bar');
                 });
         });
 
-        // the cleanup is not fast enough in mongodb, so the entry will still be there -- we can't really test this
+        // the cleanup is not fast enough in CouchDB, so the entry will still be there -- we can't really test this
         it('should make entries expire', function () {
-            return couchdbCache.put('foo', 'bar')
+            return couchdbCache.put('foo2', 'bar')
                 .then(function () {
                     return new Promise(function (resolve) {
-                        setTimeout(resolve, 1500);
+                        setTimeout(resolve, 200);
                     });
                 })
                 .then(function () {
-                    return couchdbCache.get('foo');
+                    return couchdbCache.get('foo2');
                 })
                 .then(function (res) {
                     console.log(res);
@@ -53,10 +63,14 @@ describe('CouchDBCache', function () {
     });
 
     describe('get', function () {
-        it('should get an entry from MongoDB', function () {
-            return couchdbCache.put('foo', {foo: 'bar'})
+        afterEach(function () {
+            couchdbCache.quit();
+        });
+
+        it('should get an entry from CouchDB', function () {
+            return couchdbCache.put('foo3', { foo: 'bar' })
                 .then(function () {
-                    return couchdbCache.get('foo');
+                    return couchdbCache.get('foo3');
                 })
                 .then(function (res) {
                     assert(res.foo === 'bar');
@@ -66,13 +80,17 @@ describe('CouchDBCache', function () {
     });
 
     describe('remove', function () {
-        it('should remove an entry from MongoDB', function () {
-            return couchdbCache.put('foo', 'bar')
+        afterEach(function () {
+            couchdbCache.quit();
+        });
+
+        it('should remove an entry from CouchDB', function () {
+            return couchdbCache.put('foo4', 'bar')
                 .then(function () {
-                    return couchdbCache.remove('foo');
+                    return couchdbCache.remove('foo4');
                 })
                 .then(function () {
-                    return couchdbCache.get('foo');
+                    return couchdbCache.get('foo4');
                 })
                 .then(function (res) {
                     assert(res === null);
@@ -84,17 +102,19 @@ describe('CouchDBCache', function () {
     });
 
     describe('quit', function () {
-        xit('should close the connection to MongoDB and not allow any more operations', function () {
+        it('should close the connection to CouchDB and not allow any more operations', function () {
+            var expectedError;
+
             return couchdbCache.quit()
                 .then(function () {
-                    return couchdbCache.put('foo', 'bar');
-                })
-                .then(function () {
-                    // write allowed after the connection was closed
-                    return Promise.reject();
+                    return couchdbCache.put('foo5', 'bar');
                 })
                 .catch(function (err) {
-                    assert(!!err);
+                    expectedError = err;
+                    assert(!!err)
+                })
+                .then(function () {
+                    assert(!!expectedError);
                 });
         });
     });
